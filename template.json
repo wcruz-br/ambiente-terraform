@@ -1,0 +1,9 @@
+{
+    "commands": [
+        "mkdir -p /home/ssm-user/.ssh",
+        "chmod 700 /home/ssm-user/.ssh",
+        "echo \"$pk\" | base64 -d > /home/ssm-user/.ssh/wcruz-ipecode",
+        "chmod 600 /home/ssm-user/.ssh/wcruz-ipecode",
+        "chown ssm-user /home/ssm-user/.ssh/wcruz-ipecode"
+    ]
+}
