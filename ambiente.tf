@@ -125,69 +125,82 @@ resource "aws_iam_instance_profile" "ssm_instance_profile" {
   role = aws_iam_role.ssm_instance_role.name # Associa o role ao instance profile
 }
 
+# Sobe a instância
 resource "aws_instance" "ipecode-dev" {
+    depends_on             = [aws_key_pair.my_key]
     ami                    = "ami-0c614dee691cbbf37"
     instance_type          = "t2.micro"
     vpc_security_group_ids = [aws_security_group.allow_traffic.id]
     subnet_id              = aws_subnet.ipecode_dev_subnet.id
     associate_public_ip_address = true
     iam_instance_profile = aws_iam_instance_profile.ssm_instance_profile.name # Usa o NOME do instance profile
+    key_name      = aws_key_pair.my_key.key_name
 
     tags = {
         Name = "ipecode-dev"
     }
 }
 
+# Informa a chave que será utilizada para acessar a instância
+resource "aws_key_pair" "my_key" {
+  key_name   = "wcruz-ipecode"
+  public_key = file("~/.ssh/wcruz-ipecode.pub")
+}
+
+resource "null_resource" "ansible_provision" {
+  depends_on = [aws_instance.ipecode-dev]
+
+  provisioner "local-exec" {
+    command = <<EOT
+    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode install_mysql.yaml
+    EOT
+  }
+}
+
+# resource "aws_ssm_document" "run_commands" {
+#   name          = "RunCommands"
+#   document_type = "Command"
+
+#   content = jsonencode({
+#     schemaVersion = "2.2"
+#     description   = "Run commands on the EC2 instance"
+#     mainSteps = [
+#       {
+#         action = "aws:runShellScript"
+#         name   = "runShellScript"
+#         inputs = {
+#           runCommand = [
+#             "sudo dnf install https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm -y",
+#             "sudo dnf install mysql-community-server -y",
+#             "sudo systemctl start mysqld",
+#             "sudo systemctl enable mysqld",
+#             "TEMP_PASS=$(sudo grep 'temporary password' /var/log/mysqld.log | awk '{print $NF}')",
+#             "mysql -u root -p${TEMP_PASS} -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY 'pirarucu';\""
+#           ]
+#         }
+#       }
+#     ]
+#   })
+# }
+
+# resource "aws_ssm_association" "ssm_association" {
+#   name       = aws_ssm_document.run_commands.name
+#   targets {
+#     key    = "InstanceIds"
+#     values = [aws_instance.ipecode-dev.id]
+#   }
+# }
+
+resource "null_resource" "wait_for_instance" {
+  depends_on = [aws_instance.ipecode-dev]
+
+  provisioner "local-exec" {
+    command = "echo 'Instance is ready and provisioned!'"
+  }
+}
+
+# Mostra o IP público da instância
 output "instance_ip" {
     description = "IP público da instância EC2"
     value       = aws_instance.ipecode-dev.public_ip
 }
-
-# resource "aws_ebs_volume" "ipecode-dev-ebs" {
-#     availability_zone = "us-east-1a"
-#     size              = 30
-#     type              = "gp3"
-
-#     tags = {
-#         Name = "ipecode-dev"
-#     }
-# }
-
-# resource "aws_volume_attachment" "ipecode-dev-ebs" {
-#     device_name = "/dev/sdh"
-#     volume_id   = aws_ebs_volume.ipecode-dev-ebs.id
-#     instance_id = aws_instance.ipecode-dev.id
-# }
-
-# resource "null_resource" "install_mysql" {
-#   depends_on = [aws_instance.ipecode-dev]
-
-#   provisioner "local-exec" {
-#     command = <<EOT
-# export PRIVATE_KEY_BASE64=$(cat ~/.ssh/wcruz-ipecode | base64)
-
-# jq -n --arg pk "$PRIVATE_KEY_BASE64" template.json > payload.json  # Usa template.json e cria payload.json
-
-# aws ssm send-command --instance-ids ${aws_instance.ipecode-dev.id} --document-name "AWS-RunShellScript" --parameters "$(cat payload.json)" --profile wcruz-ipecode --region us-east-1
-
-# rm payload.json # Limpeza (opcional)
-# EOT
-#   }
-
-#     provisioner "remote-exec" {
-#         inline = [
-#             "sudo apt-get update -y",
-#             "sudo apt-get install mysql-server -y",
-#             "sudo systemctl start mysql",
-#             "sudo systemctl enable mysql"
-#         ]
-
-#         connection {
-#             type        = "ssh"
-#             user        = "ssm-user"
-#             private_key = null
-#             host        = aws_instance.ipecode-dev.public_ip
-#             agent       = true
-#         }
-#     }
-# }
