@@ -1,3 +1,4 @@
-secrets/
-.terraform*
+/secrets
+.terraform
+.terraform.*
 terraform.tfstate*
