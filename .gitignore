@@ -2,3 +2,5 @@
 .terraform
 .terraform.*
 terraform.tfstate*
+.ansible/
+.vscode/

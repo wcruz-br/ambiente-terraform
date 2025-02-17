@@ -1,4 +1,12 @@
 # Configuração do provedor AWS
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.85.0"
+    }
+  }
+}
 provider "aws" {
     profile = "wcruz-ipecode"
     region  = "us-east-1"
@@ -152,44 +160,10 @@ resource "null_resource" "ansible_provision" {
 
   provisioner "local-exec" {
     command = <<EOT
-    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode install_mysql.yaml
+    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode install_mysql.ansible.yml
     EOT
   }
 }
-
-# resource "aws_ssm_document" "run_commands" {
-#   name          = "RunCommands"
-#   document_type = "Command"
-
-#   content = jsonencode({
-#     schemaVersion = "2.2"
-#     description   = "Run commands on the EC2 instance"
-#     mainSteps = [
-#       {
-#         action = "aws:runShellScript"
-#         name   = "runShellScript"
-#         inputs = {
-#           runCommand = [
-#             "sudo dnf install https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm -y",
-#             "sudo dnf install mysql-community-server -y",
-#             "sudo systemctl start mysqld",
-#             "sudo systemctl enable mysqld",
-#             "TEMP_PASS=$(sudo grep 'temporary password' /var/log/mysqld.log | awk '{print $NF}')",
-#             "mysql -u root -p${TEMP_PASS} -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY 'pirarucu';\""
-#           ]
-#         }
-#       }
-#     ]
-#   })
-# }
-
-# resource "aws_ssm_association" "ssm_association" {
-#   name       = aws_ssm_document.run_commands.name
-#   targets {
-#     key    = "InstanceIds"
-#     values = [aws_instance.ipecode-dev.id]
-#   }
-# }
 
 resource "null_resource" "wait_for_instance" {
   depends_on = [aws_instance.ipecode-dev]
