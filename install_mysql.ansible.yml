@@ -32,6 +32,8 @@
   roles:
     - role: geerlingguy.mysql
       become: true
+      environment:
+        MYSQL_PWD: "{{ lookup('file', './secrets/root_pwd.txt') }}"
       vars:
         mysql_port: "3306"
         mysql_bind_address: '0.0.0.0'
@@ -39,8 +41,8 @@
           - mysql-community-server
         mysql_enabled_on_startup: true
         mysql_root_user: root
-        mysql_root_password: "{{ lookup('file', 'secrets/root_pwd.txt') }}"
-        mysql_root_password_update: true
+        # mysql_root_password: "{{ lookup('file', './secrets/root_pwd.txt') }}"
+        # mysql_root_password_update: true
         mysql_databases:
           - name: abnmo
             encoding: utf8
@@ -48,11 +50,11 @@
         mysql_users:
           - name: abnmo_admin
             host: "%"
-            password: "{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}"
+            password: "{{ lookup('file', './secrets/abnmo_admin_pwd.txt') }}"
             priv: "abnmo.*:ALL"
             state: present
           - name: abnmo_dev
             host: "%"
-            password: "{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}"
+            password: "{{ lookup('file', './secrets/abnmo_dev_pwd.txt') }}"
             priv: "abnmo.*:DELETE, INSERT, SELECT, UPDATE"
             state: present

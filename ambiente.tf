@@ -156,7 +156,7 @@ resource "aws_key_pair" "my_key" {
 }
 
 resource "null_resource" "ansible_provision" {
-  depends_on = [aws_instance.ipecode-dev]
+  depends_on = [null_resource.wait_for_ssh]
 
   provisioner "local-exec" {
     command = <<EOT
@@ -170,6 +170,19 @@ resource "null_resource" "wait_for_instance" {
 
   provisioner "local-exec" {
     command = "echo 'Instance is ready and provisioned!'"
+  }
+}
+
+resource "null_resource" "wait_for_ssh" {
+  depends_on = [aws_instance.ipecode-dev]
+
+  provisioner "local-exec" {
+    command = <<EOT
+    while ! nc -z ${aws_instance.ipecode-dev.public_ip} 22; do
+      echo "Waiting for SSH to be available..."
+      sleep 3
+    done
+    EOT
   }
 }
 
