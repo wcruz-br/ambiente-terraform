@@ -62,6 +62,14 @@ resource "aws_security_group" "allow_traffic" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 
+    # Regras de entrada (ingress) para permitir tráfego para o MySQL
+    ingress {
+        from_port   = 3306
+        to_port     = 3306
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
     # Regra de saída (egress) para permitir tráfego para qualquer destino
     egress {
         from_port   = 0

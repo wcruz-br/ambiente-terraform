@@ -38,6 +38,11 @@
         name: ansible-lint
         state: present
 
+    - name: Instala coleções do Ansible
+      ansible.builtin.command: >
+        ansible-galaxy install -r requirements/ansible-requirements.yml
+      changed_when: false
+
 
 - name: Instala e configura o MySQL
   hosts: all
@@ -163,15 +168,25 @@
         login_user: root
         login_password: "{{ mysql_root_password }}"
 
-    - name: Cria admin dev
-      community.mysql.mysql_user:
-        name: abnmo_dev_admin
-        host: "%"
-        password: "{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}"
-        priv: "abnmo_dev.*:ALL"
+    - name: Cria database homolog
+      community.mysql.mysql_db:
+        name: abnmo_qa
+        encoding: utf8
+        collation: utf8_general_ci
         state: present
         login_user: root
         login_password: "{{ mysql_root_password }}"
+
+    - name: Cria admin (o mesmo para dev e QA)
+      community.mysql.mysql_user:
+        name: abnmo_admin
+        host: "%"
+        password: "{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}"
+        priv: "abnmo_dev.*:ALL/abnmo_qa.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      notify: Recarregar tabelas de privilégios
 
     - name: Cria usuário dev
       community.mysql.mysql_user:
@@ -182,35 +197,18 @@
         state: present
         login_user: root
         login_password: "{{ mysql_root_password }}"
-
-    - name: Cria database homolog
-      community.mysql.mysql_db:
-        name: abnmo_qa
-        encoding: utf8
-        collation: utf8_general_ci
-        state: present
-        login_user: root
-        login_password: "{{ mysql_root_password }}"
-
-    - name: Cria admin homolog
-      community.mysql.mysql_user:
-        name: abnmo_qa_admin
-        host: "%"
-        password: "{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}"
-        priv: "abnmo_dev.*:ALL"
-        state: present
-        login_user: root
-        login_password: "{{ mysql_root_password }}"
+      notify: Recarregar tabelas de privilégios
 
     - name: Cria usuário homolog
       community.mysql.mysql_user:
         name: abnmo_qa_user
         host: "%"
-        password: "{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}"
-        priv: "abnmo_dev.*:DELETE, INSERT, SELECT, UPDATE"
+        password: "{{ lookup('file', 'secrets/abnmo_qa_pwd.txt') }}"
+        priv: "abnmo_qa.*:DELETE, INSERT, SELECT, UPDATE"
         state: present
         login_user: root
         login_password: "{{ mysql_root_password }}"
+      notify: Recarregar tabelas de privilégios
 
 
   handlers:

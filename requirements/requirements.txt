@@ -1,4 +1,0 @@
-ansible-builder
-ansible-navigator
-ansible-lint
-PyMySQL
