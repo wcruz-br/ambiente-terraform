@@ -1,6 +1,7 @@
 /secrets
 .terraform
-.terraform.*
-terraform.tfstate*
 .ansible/
 .vscode/
+.venv/
+*.tfstate*
+*.tfplan

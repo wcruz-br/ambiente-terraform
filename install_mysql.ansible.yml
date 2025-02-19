@@ -1,60 +1,225 @@
-- name: Install and configure MySQL
+- name: Configurar e usar o ambiente virtual do Python (tanto local quanto no server)
+  hosts: all, localhost
+  gather_facts: false
+
+  tasks:
+    - name: Verificar se o ambiente virtual .venv existe
+      ansible.builtin.stat:
+        path: .venv
+      register: venv_exists
+
+    - name: Criar o ambiente virtual .venv se não existir
+      ansible.builtin.command: python3 -m venv .venv
+      when: not venv_exists.stat.exists
+      changed_when: true
+
+    - name: Configurar ansible_python_interpreter para usar .venv
+      ansible.builtin.set_fact:
+        ansible_python_interpreter: ".venv/bin/python"
+
+
+- name: Instala requisitos locais
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Instala ansible-builder
+      ansible.builtin.pip:
+        name: ansible-builder
+        state: present
+
+    - name: Instala ansible-navigator
+      ansible.builtin.pip:
+        name: ansible-navigator
+        state: present
+
+    - name: Instala ansible-lint
+      ansible.builtin.pip:
+        name: ansible-lint
+        state: present
+
+
+- name: Instala e configura o MySQL
   hosts: all
   become: true
 
-  pre_tasks:
+  tasks:
+    - name: Instala pip3
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
 
-    - name: Add MySQL repository
+    - name: Instala PyMySQL
+      ansible.builtin.pip:
+        name: PyMySQL
+        state: present
+
+    - name: Adicionar repositório MySQL em RedHat
       ansible.builtin.yum_repository:
         name: mysql57-community
         description: MySQL 5.7 Community repo
         baseurl: https://repo.mysql.com/yum/mysql-5.7-community/el/7/x86_64/
         gpgcheck: false
+        state: present
       when: ansible_os_family == "RedHat"
 
-    - name: Override variables for MySQL (RedHat).
-      ansible.builtin.set_fact:
-        mysql_daemon: mysqld
-        mysql_packages: ['mysql-community-server']
-        mysql_log_error: /var/log/mysqld.log
-        mysql_syslog_tag: mysqld
-        mysql_pid_file: /var/run/mysqld/mysqld.pid
-        mysql_socket: /var/lib/mysql/mysql.sock
-        mysql_slow_query_log_file: /var/log/mysql-slow.log
-        mysql_slow_query_time: 2
-        mysql_slow_query_log: true
-        mysql_log_queries_not_using_indexes: true
-        mysql_config_file: /etc/my.cnf
-        mysql_config_include_dir: /etc/my.cnf.d
-        mysql_supports_innodb_large_prefix: true
+    - name: Adicionar repositório MySQL em Debian/Ubuntu
+      ansible.builtin.apt_repository:
+        repo: "deb http://repo.mysql.com/apt/debian/ buster mysql-5.7"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Instalar MySQL usando package
+      ansible.builtin.package:
+        name: mysql-community-server
+        state: present
       when: ansible_os_family == "RedHat"
 
-  roles:
-    - role: geerlingguy.mysql
-      become: true
+    - name: Iniciar MySQL
+      ansible.builtin.service:
+        name: mysqld
+        state: started
+        enabled: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Aguardar MySQL iniciar e estar disponível
+      ansible.builtin.wait_for:
+        host: "127.0.0.1"
+        port: 3306
+        delay: 3
+        timeout: 300
+        state: started
+
+    - name: Verificar se a senha do root precisa ser alterada
+      ansible.builtin.shell: >
+        mysql -u root -e "SELECT 1;"
       environment:
-        MYSQL_PWD: "{{ lookup('file', './secrets/root_pwd.txt') }}"
-      vars:
-        mysql_port: "3306"
-        mysql_bind_address: '0.0.0.0'
-        mysql_packages:
-          - mysql-community-server
-        mysql_enabled_on_startup: true
-        mysql_root_user: root
-        # mysql_root_password: "{{ lookup('file', './secrets/root_pwd.txt') }}"
-        # mysql_root_password_update: true
-        mysql_databases:
-          - name: abnmo
-            encoding: utf8
-            collation: utf8_general_ci
-        mysql_users:
-          - name: abnmo_admin
-            host: "%"
-            password: "{{ lookup('file', './secrets/abnmo_admin_pwd.txt') }}"
-            priv: "abnmo.*:ALL"
-            state: present
-          - name: abnmo_dev
-            host: "%"
-            password: "{{ lookup('file', './secrets/abnmo_dev_pwd.txt') }}"
-            priv: "abnmo.*:DELETE, INSERT, SELECT, UPDATE"
-            state: present
+        MYSQL_PWD: "{{ mysql_root_password }}"
+      register: root_password_check
+      failed_when: false
+      changed_when: false
+      ignore_errors: true
+
+    - name: Definir variável para alterar a senha do root
+      ansible.builtin.set_fact:
+        alter_root_password: true
+      when: root_password_check.rc != 0
+
+    - name: Obter a senha temporária do root do MySQL
+      ansible.builtin.shell: "set -o pipefail && grep 'temporary password' /var/log/mysqld.log | awk '{print $NF}'"
+      register: mysql_temp_root_password
+      no_log: true
+      changed_when: mysql_temp_root_password.stdout != ""
+      when: alter_root_password | default(false)
+
+    - name: Redefinir a senha do root do MySQL diretamente usando mysql
+      ansible.builtin.shell: >
+            mysql --connect-expired-password -u root -e "
+                  ALTER USER 'root'@'localhost'
+                  IDENTIFIED BY '{{ mysql_root_password }}'
+                  PASSWORD EXPIRE NEVER;"
+      register: alter_user_result
+      no_log: true
+      environment:
+        MYSQL_PWD: "{{ mysql_temp_root_password.stdout }}"
+      changed_when: "'changed' in alter_user_result.stdout"
+      when: alter_root_password | default(false)
+      notify: Recarregar tabelas de privilégios
+
+    - name: Remover usuários anônimos
+      community.mysql.mysql_user:
+        name: ''
+        host_all: true
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Desabilitar logins remotos do root
+      community.mysql.mysql_user:
+        name: root
+        host: "{{ item }}"
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      loop:
+        - "{{ ansible_fqdn }}"
+        - "{{ inventory_hostname }}"
+        - 127.0.0.1
+        - ::1
+
+    - name: Remover banco de dados de teste
+      community.mysql.mysql_db:
+        name: test
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Cria database dev
+      community.mysql.mysql_db:
+        name: abnmo_dev
+        encoding: utf8
+        collation: utf8_general_ci
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Cria admin dev
+      community.mysql.mysql_user:
+        name: abnmo_dev_admin
+        host: "%"
+        password: "{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}"
+        priv: "abnmo_dev.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Cria usuário dev
+      community.mysql.mysql_user:
+        name: abnmo_dev_user
+        host: "%"
+        password: "{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}"
+        priv: "abnmo_dev.*:DELETE, INSERT, SELECT, UPDATE"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Cria database homolog
+      community.mysql.mysql_db:
+        name: abnmo_qa
+        encoding: utf8
+        collation: utf8_general_ci
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Cria admin homolog
+      community.mysql.mysql_user:
+        name: abnmo_qa_admin
+        host: "%"
+        password: "{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}"
+        priv: "abnmo_dev.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Cria usuário homolog
+      community.mysql.mysql_user:
+        name: abnmo_qa_user
+        host: "%"
+        password: "{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}"
+        priv: "abnmo_dev.*:DELETE, INSERT, SELECT, UPDATE"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+
+  handlers:
+    - name: Recarregar tabelas de privilégios
+      ansible.builtin.command: mysqladmin flush-privileges
+      environment:
+        MYSQL_PWD: "{{ mysql_root_password }}"
+      changed_when: false
+
+
+  vars:
+    mysql_root_password: "{{ lookup('file', 'secrets/root_pwd.txt') }}"

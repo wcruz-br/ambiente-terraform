@@ -160,7 +160,7 @@ resource "null_resource" "ansible_provision" {
 
   provisioner "local-exec" {
     command = <<EOT
-    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode install_mysql.ansible.yml
+    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" install_mysql.ansible.yml
     EOT
   }
 }
