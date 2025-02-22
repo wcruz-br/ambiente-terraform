@@ -46,22 +46,6 @@ resource "aws_security_group" "allow_traffic" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 
-    # # Regras de entrada (ingress) para permitir tráfego HTTP
-    # ingress {
-    #     from_port   = 80
-    #     to_port     = 80
-    #     protocol    = "tcp"
-    #     cidr_blocks = ["0.0.0.0/0"]
-    # }
-
-    # # Regras de entrada (ingress) para permitir tráfego HTTPS
-    # ingress {
-    #     from_port   = 443
-    #     to_port     = 443
-    #     protocol    = "tcp"
-    #     cidr_blocks = ["0.0.0.0/0"]
-    # }
-
     # Regras de entrada (ingress) para permitir tráfego para o MySQL
     ingress {
         from_port   = 3306
