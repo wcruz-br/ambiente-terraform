@@ -210,6 +210,15 @@
         login_password: "{{ mysql_root_password }}"
       notify: Recarregar tabelas de privilégios
 
+    - name: Atualiza DNS Dinâmico (freedns.afraid.org) - ipecode-dev-db.ignorelist.com
+      ansible.builtin.uri:
+        url: "{{ lookup('file', 'secrets/freedns_update_url.txt') }}"
+        method: GET
+        status_code: 200
+        return_content: true
+      changed_when: false
+      no_log: true
+
 
   handlers:
     - name: Recarregar tabelas de privilégios
