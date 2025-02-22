@@ -68,12 +68,6 @@
         state: present
       when: ansible_os_family == "RedHat"
 
-    - name: Adicionar repositório MySQL em Debian/Ubuntu
-      ansible.builtin.apt_repository:
-        repo: "deb http://repo.mysql.com/apt/debian/ buster mysql-5.7"
-        state: present
-      when: ansible_os_family == "Debian"
-
     - name: Instalar MySQL usando package
       ansible.builtin.package:
         name: mysql-community-server
