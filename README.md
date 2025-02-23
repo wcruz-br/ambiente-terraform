@@ -85,6 +85,3 @@ Após a execução do Terraform, o IP público da instância EC2 será exibido c
 ```
 ## Contribuições
 Sugestões e contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull requests.
-
-## Licença
-Este projeto está licenciado sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
