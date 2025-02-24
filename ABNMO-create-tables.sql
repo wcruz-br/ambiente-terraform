@@ -71,19 +71,45 @@ CREATE TABLE IF NOT EXISTS `atendimentos` (
   PRIMARY KEY (`id_atendimento`)
 );
 
-ALTER TABLE `pacientes`
-  ADD CONSTRAINT `pacientes_fk0` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios`(`id_usuario`),
-  ADD CONSTRAINT `pacientes_fk13` FOREIGN KEY (`id_diagnostico`) REFERENCES `diagnosticos`(`id_diagnostico`);
 
-ALTER TABLE `profissionais`
-  ADD CONSTRAINT `profissionais_fk0` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios`(`id_usuario`);
+DELIMITER $$
 
-ALTER TABLE `apoios`
-  ADD CONSTRAINT `apoios_fk1` FOREIGN KEY (`id_usuario`) REFERENCES `pacientes`(`id_usuario`);
+CREATE PROCEDURE AddForeignKeyIfNotExists(
+    IN tableName VARCHAR(64),
+    IN constraintName VARCHAR(64),
+    IN foreignKeyColumn VARCHAR(64),
+    IN referenceTable VARCHAR(64),
+    IN referenceColumn VARCHAR(64)
+)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.TABLE_CONSTRAINTS
+        WHERE CONSTRAINT_NAME = constraintName
+          AND TABLE_NAME = tableName
+    ) THEN
+        SET @alterSQL = CONCAT(
+            'ALTER TABLE ', tableName,
+            ' ADD CONSTRAINT ', constraintName,
+            ' FOREIGN KEY (', foreignKeyColumn, ') REFERENCES ', referenceTable, '(', referenceColumn, ')'
+        );
+        PREPARE stmt FROM @alterSQL;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END $$
 
-ALTER TABLE `log_alteracoes`
-  ADD CONSTRAINT `log_alteracoes_fk1` FOREIGN KEY (`id_usuario_autor`) REFERENCES `usuarios`(`id_usuario`),
-  ADD CONSTRAINT `log_alteracoes_fk2` FOREIGN KEY (`id_usuario_alvo`) REFERENCES `usuarios`(`id_usuario`);
+DELIMITER ;
 
-ALTER TABLE `atendimentos`
-  ADD CONSTRAINT `atendimentos_fk1` FOREIGN KEY (`id_usuario`) REFERENCES `pacientes`(`id_usuario`);
+
+CALL AddForeignKeyIfNotExists('pacientes', 'pacientes_fk0', 'id_usuario', 'usuarios', 'id_usuario');
+CALL AddForeignKeyIfNotExists('pacientes', 'pacientes_fk13', 'id_diagnostico', 'diagnosticos', 'id_diagnostico');
+
+CALL AddForeignKeyIfNotExists('profissionais', 'profissionais_fk0', 'id_usuario', 'usuarios', 'id_usuario');
+
+CALL AddForeignKeyIfNotExists('apoios', 'apoios_fk1', 'id_usuario', 'pacientes', 'id_usuario');
+
+CALL AddForeignKeyIfNotExists('log_alteracoes', 'log_alteracoes_fk1', 'id_usuario_autor', 'usuarios', 'id_usuario');
+CALL AddForeignKeyIfNotExists('log_alteracoes', 'log_alteracoes_fk2', 'id_usuario_alvo', 'usuarios', 'id_usuario');
+
+CALL AddForeignKeyIfNotExists('atendimentos', 'atendimentos_fk1', 'id_usuario', 'pacientes', 'id_usuario');

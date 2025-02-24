@@ -7,13 +7,19 @@
       ansible.builtin.set_fact:
         ansible_python_interpreter: ".venv/bin/python"
 
-    - name: Copia o arquivo SQL para o host remoto
+    - name: Copia o arquivo SQL de criacao de tabelas para o host remoto
       ansible.builtin.copy:
         src: ABNMO-create-tables.sql
         dest: /tmp/ABNMO-create-tables.sql
         mode: '0600'
 
-    - name: Importa o arquivo SQL para o banco de dados dev
+    - name: Copia o arquivo SQL de população de dados básicos para o host remoto
+      ansible.builtin.copy:
+        src: ABNMO-popula-dados-basicos.sql
+        dest: /tmp/ABNMO-popula-dados-basicos.sql
+        mode: '0600'
+
+    - name: Cria as tabelas no banco de dados dev
       community.mysql.mysql_db:
         state: import
         name: abnmo_dev
@@ -23,7 +29,17 @@
         encoding: utf8
         collation: utf8_general_ci
 
-    - name: Importa o arquivo SQL para o banco de dados homolog
+    - name: Popula as tabelas no banco de dados dev
+      community.mysql.mysql_db:
+        state: import
+        name: abnmo_dev
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        target: /tmp/ABNMO-popula-dados-basicos.sql
+        encoding: utf8
+        collation: utf8_general_ci
+
+    - name: Cria as tabelas no banco de dados homolog
       community.mysql.mysql_db:
         state: import
         name: abnmo_qa
@@ -33,9 +49,24 @@
         encoding: utf8
         collation: utf8_general_ci
 
-    - name: Remove o arquivo SQL do host remoto
+    - name: Popula as tabelas no banco de dados homolog
+      community.mysql.mysql_db:
+        state: import
+        name: abnmo_qa
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        target: /tmp/ABNMO-popula-dados-basicos.sql
+        encoding: utf8
+        collation: utf8_general_ci
+
+    - name: Remove o arquivo de create do host remoto
       ansible.builtin.file:
         path: /tmp/ABNMO-create-tables.sql
+        state: absent
+
+    - name: Remove o arquivo de insert do host remoto
+      ansible.builtin.file:
+        path: /tmp/ABNMO-popula-dados-basicos.sql
         state: absent
 
 
