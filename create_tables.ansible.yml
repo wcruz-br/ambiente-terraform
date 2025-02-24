@@ -1,0 +1,43 @@
+- name: Cria tabelas no banco de dados
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Configurar ansible_python_interpreter para usar .venv
+      ansible.builtin.set_fact:
+        ansible_python_interpreter: ".venv/bin/python"
+
+    - name: Copia o arquivo SQL para o host remoto
+      ansible.builtin.copy:
+        src: ABNMO-create-tables.sql
+        dest: /tmp/ABNMO-create-tables.sql
+        mode: '0600'
+
+    - name: Importa o arquivo SQL para o banco de dados dev
+      community.mysql.mysql_db:
+        state: import
+        name: abnmo_dev
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        target: /tmp/ABNMO-create-tables.sql
+        encoding: utf8
+        collation: utf8_general_ci
+
+    - name: Importa o arquivo SQL para o banco de dados homolog
+      community.mysql.mysql_db:
+        state: import
+        name: abnmo_qa
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        target: /tmp/ABNMO-create-tables.sql
+        encoding: utf8
+        collation: utf8_general_ci
+
+    - name: Remove o arquivo SQL do host remoto
+      ansible.builtin.file:
+        path: /tmp/ABNMO-create-tables.sql
+        state: absent
+
+
+  vars:
+    mysql_root_password: "{{ lookup('file', 'secrets/root_pwd.txt') }}"

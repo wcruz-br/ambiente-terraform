@@ -7,6 +7,7 @@ Automatização da criação e configuração de uma EC2 na AWS rodando MySQL, u
 - `ambiente.tf`: Arquivo de configuração do Terraform que define os recursos da AWS, incluindo VPC, sub-rede, grupo de segurança, instância EC2 e outros.
 - `install_mysql.ansible.yml`: Playbook Ansible que instala e configura o MySQL na instância EC2.
 - `requirements/ansible-requirements.yml`: Arquivo que lista as coleções Ansible necessárias para o playbook.
+- `ABNMO-create-tables.sql`: Arquivo SQL que contém os comandos para criar as tabelas no banco de dados.
 
 ## Recursos Criados
 
@@ -28,6 +29,7 @@ Automatização da criação e configuração de uma EC2 na AWS rodando MySQL, u
 2. **Instalação de Pacotes Locais**: Instala requisitos locais do Ansible.
 3. **Instalação e Configuração do MySQL**: Instala e configura o MySQL na instância EC2.
 4. **Atualização de DNS Dinâmico**: Atualiza o DNS dinâmico usando o serviço [FreeDNS](https://freedns.afraid.org).
+5. **Criação de Tabelas no Banco de Dados**: Cria as tabelas necessárias no banco de dados MySQL.
 
 ## Como Usar
 
@@ -81,10 +83,8 @@ Após a execução do Terraform, o IP público da instância EC2 será exibido c
 ├── install_mysql.ansible.yml
 ├── requirements
 │   └── ansible-requirements.yml
+├── ABNMO-create-tables.sql
 └── README.md
 ```
 ## Contribuições
 Sugestões e contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull requests.
-
-## Licença
-Este projeto está licenciado sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.

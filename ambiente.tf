@@ -147,7 +147,7 @@ resource "aws_key_pair" "my_key" {
   public_key = file("~/.ssh/wcruz-ipecode.pub")
 }
 
-resource "null_resource" "ansible_provision" {
+resource "null_resource" "ansible_instala_mysql" {
   depends_on = [null_resource.wait_for_ssh]
 
   provisioner "local-exec" {
@@ -157,11 +157,13 @@ resource "null_resource" "ansible_provision" {
   }
 }
 
-resource "null_resource" "wait_for_instance" {
-  depends_on = [aws_instance.ipecode-dev]
+resource "null_resource" "ansible_cria_tabelas" {
+  depends_on = [null_resource.ansible_instala_mysql]
 
   provisioner "local-exec" {
-    command = "echo 'Instance is ready and provisioned!'"
+    command = <<EOT
+    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" create_tables.ansible.yml
+    EOT
   }
 }
 
@@ -171,7 +173,7 @@ resource "null_resource" "wait_for_ssh" {
   provisioner "local-exec" {
     command = <<EOT
     while ! nc -z ${aws_instance.ipecode-dev.public_ip} 22; do
-      echo "Waiting for SSH to be available..."
+      echo "Esperando o SSH estar disponível..."
       sleep 3
     done
     EOT

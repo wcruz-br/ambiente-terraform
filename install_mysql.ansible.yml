@@ -17,7 +17,6 @@
       ansible.builtin.set_fact:
         ansible_python_interpreter: ".venv/bin/python"
 
-
 - name: Instala requisitos locais
   hosts: localhost
   gather_facts: false
@@ -43,7 +42,6 @@
         ansible-galaxy install -r requirements/ansible-requirements.yml
       changed_when: false
 
-
 - name: Instala e configura o MySQL
   hosts: all
   become: true
@@ -59,11 +57,16 @@
         name: PyMySQL
         state: present
 
+    - name: Instalar cryptography
+      ansible.builtin.pip:
+        name: cryptography
+        state: present
+
     - name: Adicionar repositório MySQL em RedHat
       ansible.builtin.yum_repository:
-        name: mysql57-community
-        description: MySQL 5.7 Community repo
-        baseurl: https://repo.mysql.com/yum/mysql-5.7-community/el/7/x86_64/
+        name: mysql84-community
+        description: MySQL 8.4 Community repo
+        baseurl: https://repo.mysql.com/yum/mysql-8.4-community/el/9/x86_64/
         gpgcheck: false
         state: present
       when: ansible_os_family == "RedHat"
@@ -115,7 +118,7 @@
       ansible.builtin.shell: >
             mysql --connect-expired-password -u root -e "
                   ALTER USER 'root'@'localhost'
-                  IDENTIFIED BY '{{ mysql_root_password }}'
+                  IDENTIFIED WITH caching_sha2_password BY '{{ mysql_root_password }}'
                   PASSWORD EXPIRE NEVER;"
       register: alter_user_result
       no_log: true
@@ -172,37 +175,35 @@
         login_password: "{{ mysql_root_password }}"
 
     - name: Cria admin (o mesmo para dev e QA)
-      community.mysql.mysql_user:
-        name: abnmo_admin
-        host: "%"
-        password: "{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}"
-        priv: "abnmo_dev.*:ALL/abnmo_qa.*:ALL"
-        state: present
-        login_user: root
-        login_password: "{{ mysql_root_password }}"
-      notify: Recarregar tabelas de privilégios
+      ansible.builtin.shell: >
+        mysql -u root -p{{ mysql_root_password }} -e "
+            CREATE USER IF NOT EXISTS 'abnmo_admin'@'%' IDENTIFIED WITH caching_sha2_password BY '{{ lookup('file', 'secrets/abnmo_admin_pwd.txt') }}';
+            GRANT ALL PRIVILEGES ON abnmo_dev.* TO 'abnmo_admin'@'%';
+            GRANT ALL PRIVILEGES ON abnmo_qa.* TO 'abnmo_admin'@'%';
+            FLUSH PRIVILEGES;"
+      register: create_admin_result
+      changed_when: create_admin_result.rc == 0
+      no_log: true
 
     - name: Cria usuário dev
-      community.mysql.mysql_user:
-        name: abnmo_dev_user
-        host: "%"
-        password: "{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}"
-        priv: "abnmo_dev.*:DELETE, INSERT, SELECT, UPDATE"
-        state: present
-        login_user: root
-        login_password: "{{ mysql_root_password }}"
-      notify: Recarregar tabelas de privilégios
+      ansible.builtin.shell: >
+        mysql -u root -p{{ mysql_root_password }} -e "
+            CREATE USER IF NOT EXISTS 'abnmo_dev_user'@'%' IDENTIFIED WITH caching_sha2_password BY '{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}';
+            GRANT DELETE, INSERT, SELECT, UPDATE ON abnmo_dev.* TO 'abnmo_dev_user'@'%';
+            FLUSH PRIVILEGES;"
+      register: create_dev_user_result
+      changed_when: create_dev_user_result.rc == 0
+      no_log: true
 
     - name: Cria usuário homolog
-      community.mysql.mysql_user:
-        name: abnmo_qa_user
-        host: "%"
-        password: "{{ lookup('file', 'secrets/abnmo_qa_pwd.txt') }}"
-        priv: "abnmo_qa.*:DELETE, INSERT, SELECT, UPDATE"
-        state: present
-        login_user: root
-        login_password: "{{ mysql_root_password }}"
-      notify: Recarregar tabelas de privilégios
+      ansible.builtin.shell: >
+        mysql -u root -p{{ mysql_root_password }} -e "
+            CREATE USER IF NOT EXISTS 'abnmo_qa_user'@'%' IDENTIFIED WITH caching_sha2_password BY '{{ lookup('file', 'secrets/abnmo_qa_pwd.txt') }}';
+            GRANT DELETE, INSERT, SELECT, UPDATE ON abnmo_qa.* TO 'abnmo_qa_user'@'%';
+            FLUSH PRIVILEGES;"
+      register: create_qa_user_result
+      changed_when: create_qa_user_result.rc == 0
+      no_log: true
 
     - name: Atualiza DNS Dinâmico (freedns.afraid.org) - ipecode-dev-db.ignorelist.com
       ansible.builtin.uri:
@@ -213,14 +214,12 @@
       changed_when: false
       no_log: true
 
-
   handlers:
     - name: Recarregar tabelas de privilégios
       ansible.builtin.command: mysqladmin flush-privileges
       environment:
         MYSQL_PWD: "{{ mysql_root_password }}"
       changed_when: false
-
 
   vars:
     mysql_root_password: "{{ lookup('file', 'secrets/root_pwd.txt') }}"
