@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `atendimentos` (
 
 DELIMITER $$
 
-CREATE PROCEDURE AddForeignKeyIfNotExists(
+CREATE PROCEDURE IF NOT EXISTS AddForeignKeyIfNotExists(
     IN tableName VARCHAR(64),
     IN constraintName VARCHAR(64),
     IN foreignKeyColumn VARCHAR(64),
