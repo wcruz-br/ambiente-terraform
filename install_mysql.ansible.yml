@@ -188,8 +188,8 @@
     - name: Cria usuário dev
       ansible.builtin.shell: >
         mysql -u root -p{{ mysql_root_password }} -e "
-            CREATE USER IF NOT EXISTS 'abnmo_dev_user'@'%' IDENTIFIED WITH caching_sha2_password BY '{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}';
-            GRANT DELETE, INSERT, SELECT, UPDATE ON abnmo_dev.* TO 'abnmo_dev_user'@'%';
+            CREATE USER IF NOT EXISTS 'abnmo_dev'@'%' IDENTIFIED WITH caching_sha2_password BY '{{ lookup('file', 'secrets/abnmo_dev_pwd.txt') }}';
+            GRANT DELETE, INSERT, SELECT, UPDATE ON abnmo_dev.* TO 'abnmo_dev'@'%';
             FLUSH PRIVILEGES;"
       register: create_dev_user_result
       changed_when: create_dev_user_result.rc == 0
@@ -198,8 +198,8 @@
     - name: Cria usuário homolog
       ansible.builtin.shell: >
         mysql -u root -p{{ mysql_root_password }} -e "
-            CREATE USER IF NOT EXISTS 'abnmo_qa_user'@'%' IDENTIFIED WITH caching_sha2_password BY '{{ lookup('file', 'secrets/abnmo_qa_pwd.txt') }}';
-            GRANT DELETE, INSERT, SELECT, UPDATE ON abnmo_qa.* TO 'abnmo_qa_user'@'%';
+            CREATE USER IF NOT EXISTS 'abnmo_qa'@'%' IDENTIFIED WITH caching_sha2_password BY '{{ lookup('file', 'secrets/abnmo_qa_pwd.txt') }}';
+            GRANT DELETE, INSERT, SELECT, UPDATE ON abnmo_qa.* TO 'abnmo_qa'@'%';
             FLUSH PRIVILEGES;"
       register: create_qa_user_result
       changed_when: create_qa_user_result.rc == 0
