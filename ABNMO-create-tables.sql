@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS `usuarios` (
   `id_usuario` INT AUTO_INCREMENT NOT NULL UNIQUE,
   `email` VARCHAR(320),
-  `senha` VARCHAR(50),
+  `senha` VARCHAR(60),
   `flag_login_facebook` TINYINT NOT NULL DEFAULT 0,
   `flag_login_gmail` TINYINT NOT NULL DEFAULT 0,
   `id_oauth` VARCHAR(255),
