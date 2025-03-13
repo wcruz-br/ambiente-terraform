@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `data_cadastro` DATETIME NOT NULL,
   `flag_ativo` TINYINT NOT NULL DEFAULT 0,
   `flag_deletado` TINYINT NOT NULL DEFAULT 0,
+  `cod_validacao` VARCHAR(4) NULL,
+  `data_validacao` DATETIME NULL,
   PRIMARY KEY (`id_usuario`)
 );
 
