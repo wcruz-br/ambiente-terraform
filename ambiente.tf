@@ -3,7 +3,7 @@ terraform {
   required_providers {
     aws = {
       source = "hashicorp/aws"
-      version = "5.85.0"
+      version = "5.94.1"
     }
   }
 }
@@ -17,7 +17,8 @@ resource "aws_vpc" "ipecode_dev_vpc" {
     cidr_block = "10.0.0.0/16"
 
     tags = {
-        Name = "ipecode-dev"
+        Projeto = "ipecode-abnmo"
+        Ambiente = "dev/qa"
     }
 }
 
@@ -28,7 +29,7 @@ resource "aws_subnet" "ipecode_dev_subnet" {
     availability_zone = "us-east-1a"
 
     tags = {
-        Name = "ipecode-dev"
+        Name = "abnmo-subnet"
     }
 }
 
@@ -63,7 +64,7 @@ resource "aws_security_group" "allow_traffic" {
     }
 
     tags = {
-        Name = "ipecode-dev"
+        Name = "abnmo-sg-allow-traffic"
     }
 }
 
@@ -72,7 +73,7 @@ resource "aws_internet_gateway" "ipecode_dev_igw" {
   vpc_id = aws_vpc.ipecode_dev_vpc.id
 
   tags = {
-    Name = "ipecode-dev"
+    Name = "abnmo-internet-gateway"
   }
 }
 
@@ -86,7 +87,7 @@ resource "aws_route_table" "ipecode_dev_route_table" {
   }
 
   tags = {
-    Name = "ipecode-dev"
+    Name = "abnmo-route-table"
   }
 }
 
@@ -98,7 +99,7 @@ resource "aws_route_table_association" "ipecode_dev_route_table_association" {
 
 # Cria o perfil de IAM
 resource "aws_iam_role" "ssm_instance_role" {
-  name = "SSMInstanceRole"
+  name = "abnmo-SSMInstanceRole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -121,7 +122,7 @@ resource "aws_iam_role_policy_attachment" "ssm_instance_role_policy_attachment" 
 
 # Cria o Instance Profile
 resource "aws_iam_instance_profile" "ssm_instance_profile" {
-  name = "SSMInstanceProfile"  # Nome do instance profile
+  name = "abnmo-SSMInstanceProfile"  # Nome do instance profile
   role = aws_iam_role.ssm_instance_role.name # Associa o role ao instance profile
 }
 
@@ -137,7 +138,7 @@ resource "aws_instance" "ipecode-dev" {
     key_name      = aws_key_pair.my_key.key_name
 
     tags = {
-        Name = "ipecode-dev"
+        Name = "abnmo-ec2-instance"
     }
 }
 
