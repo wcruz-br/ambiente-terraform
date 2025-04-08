@@ -22,7 +22,7 @@ resource "aws_iam_role_policy_attachment" "ipecode_abnmo_lambda_basic_execution"
 resource "aws_lambda_function" "ipecode-abnmo-lambda-backend-main" {
   function_name = "ipecode-abnmo-lambda-backend-main"
   role          = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
-  handler       = "index.handler"
+  handler       = "dist/src/lambda.handler"
   runtime       = "nodejs20.x"
   filename      = "placeholder.zip"
   source_code_hash = filebase64sha256("placeholder.zip")
@@ -44,7 +44,7 @@ resource "aws_lambda_function_url" "lambda_url_main" {
 resource "aws_lambda_function" "ipecode-abnmo-lambda-backend-dev" {
   function_name = "ipecode-abnmo-lambda-backend-dev"
   role          = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
-  handler       = "index.handler"
+  handler       = "dist/src/lambda.handler"
   runtime       = "nodejs20.x"
   filename      = "placeholder.zip"
   source_code_hash = filebase64sha256("placeholder.zip")
@@ -66,7 +66,7 @@ resource "aws_lambda_function_url" "lambda_url_dev" {
 resource "aws_lambda_function" "ipecode-abnmo-lambda-backend-qa" {
   function_name = "ipecode-abnmo-lambda-backend-qa"
   role          = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
-  handler       = "index.handler"
+  handler       = "dist/src/lambda.handler"
   runtime       = "nodejs20.x"
   filename      = "placeholder.zip"
   source_code_hash = filebase64sha256("placeholder.zip")
