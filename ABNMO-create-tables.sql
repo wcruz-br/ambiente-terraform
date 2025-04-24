@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `token_oauth` TEXT,
   `nome_completo` VARCHAR(100) NOT NULL,
   `data_cadastro` DATETIME NOT NULL,
-  `flag_ativo` TINYINT NOT NULL DEFAULT 0,
   `flag_deletado` TINYINT NOT NULL DEFAULT 0,
   `cod_validacao` VARCHAR(4) NULL,
   `data_validacao` DATETIME NULL,
@@ -31,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `pacientes` (
   `desc_medicamentos` VARCHAR(500),
   `id_diagnostico` INT,
   `filename_diagnostico` VARCHAR(200),
+  `flag_ativo` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id_usuario`)
 );
 
