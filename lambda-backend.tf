@@ -116,7 +116,7 @@ resource "aws_iam_role" "github_oidc_lambda_deploy" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         },
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:ipecode/back-abmno:ref:refs/heads/*"
+          "token.actions.githubusercontent.com:sub" = "repo:ipecode-br/abnmo-backend:ref:refs/heads/*"
         }
       }
     }]
