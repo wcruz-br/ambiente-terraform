@@ -148,12 +148,24 @@ resource "aws_key_pair" "my_key" {
   public_key = file("~/.ssh/wcruz-ipecode.pub")
 }
 
+# Cria o Elastic IP com o endereço específico
+resource "aws_eip" "ipecode_dev_eip" {
+  domain = "vpc"
+  instance = aws_instance.ipecode-dev.id
+  tags = {
+    Name = "abnmo-dev-eip"
+    Description = "Elastic IP para ambiente dev da ABNMO"
+    Projeto = "ipecode-abnmo"
+    Ambiente = "dev/qa"
+  }
+}
+
 resource "null_resource" "ansible_instala_mysql" {
   depends_on = [null_resource.wait_for_ssh]
 
   provisioner "local-exec" {
     command = <<EOT
-    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" install_mysql.ansible.yml
+    ansible-playbook -i "${aws_eip.ipecode_dev_eip.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" install_mysql.ansible.yml
     EOT
   }
 }
@@ -163,7 +175,7 @@ resource "null_resource" "ansible_cria_tabelas" {
 
   provisioner "local-exec" {
     command = <<EOT
-    ansible-playbook -i "${aws_instance.ipecode-dev.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" create_tables.ansible.yml
+    ansible-playbook -i "${aws_eip.ipecode_dev_eip.public_ip}," -u ec2-user --private-key ~/.ssh/wcruz-ipecode --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" create_tables.ansible.yml
     EOT
   }
 }
@@ -173,7 +185,7 @@ resource "null_resource" "wait_for_ssh" {
 
   provisioner "local-exec" {
     command = <<EOT
-    while ! nc -z ${aws_instance.ipecode-dev.public_ip} 22; do
+    while ! nc -z ${aws_eip.ipecode_dev_eip.public_ip} 22; do
       echo "Esperando o SSH estar disponível..."
       sleep 3
     done
@@ -184,5 +196,5 @@ resource "null_resource" "wait_for_ssh" {
 # Mostra o IP público da instância
 output "instance_ip" {
     description = "IP público da instância EC2"
-    value       = aws_instance.ipecode-dev.public_ip
+    value       = aws_eip.ipecode_dev_eip.public_ip
 }
