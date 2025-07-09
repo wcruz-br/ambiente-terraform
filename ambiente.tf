@@ -154,7 +154,7 @@ resource "aws_eip" "ipecode_dev_eip" {
   instance = aws_instance.ipecode-dev.id
   tags = {
     Name = "abnmo-dev-eip"
-    Description = "Elastic IP para ambiente dev da ABNMO"
+    Description = "Elastic IP para ambientes dev/qa da ABNMO"
     Projeto = "ipecode-abnmo"
     Ambiente = "dev/qa"
   }

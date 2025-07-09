@@ -20,26 +20,13 @@ resource "aws_iam_role_policy_attachment" "ipecode_abnmo_lambda_basic_execution"
 
 # Função lambda - versão main
 resource "aws_lambda_function" "ipecode-abnmo-lambda-backend-main" {
-  function_name = "ipecode-abnmo-lambda-backend-main"
-  role          = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
-  filename      = "placeholder.zip"
+  function_name    = "ipecode-abnmo-lambda-backend-main"
+  role             = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = "placeholder.zip"
   source_code_hash = filebase64sha256("placeholder.zip")
-  timeout       = 10
-
-  environment {
-    variables = {
-      API_PORT     = "3333"
-      DB_DATABASE  = "abnmo_prod"
-      DB_HOST      = "abnmo-db.ipecode.com.br"
-      DB_PASSWORD  = file("${path.module}/secrets/abnmo_admin_pwd.txt")
-      DB_PORT      = "3306"
-      DB_USERNAME  = "abnmo_admin"
-      JWT_SECRET   = "$2a$12$YfjA.G05PJf5EpGjdKFpbOUvrrSG6Mm7Zp6l2YN2/25LbDGdB/m/a"
-      NODE_ENV     = "production"
-    }
-  }
+  timeout          = 10
 }
 
 resource "aws_lambda_function_url" "lambda_url_main" {
@@ -55,26 +42,35 @@ resource "aws_lambda_function_url" "lambda_url_main" {
 
 # Função lambda - versão dev
 resource "aws_lambda_function" "ipecode-abnmo-lambda-backend-dev" {
-  function_name = "ipecode-abnmo-lambda-backend-dev"
-  role          = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
-  filename      = "placeholder.zip"
+  function_name    = "ipecode-abnmo-lambda-backend-dev"
+  role             = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = "placeholder.zip"
   source_code_hash = filebase64sha256("placeholder.zip")
-  timeout       = 10
+  timeout          = 10
 
   environment {
     variables = {
-      API_PORT     = "3333"
-      DB_DATABASE  = "abnmo_dev"
-      DB_HOST      = "abnmo-db-dev.ipecode.com.br"
-      DB_PASSWORD  = file("${path.module}/secrets/abnmo_dev_pwd.txt")
-      DB_PORT      = "3306"
-      DB_USERNAME  = "abnmo_dev"
-      JWT_SECRET   = "$2a$12$H8AX84XU9UaUAtkttFrkn.1L/.3OpGS4sALMqttWriljWiJL/N51O"
-      NODE_ENV     = "development"
+
+      NODE_ENV        = "development"
+
+      APP_URL         = "https://dev--abnmo.netlify.app"
+      APP_ENVIRONMENT = "development"
+
+      COOKIE_DOMAIN   = "abnmo.netlify.app"
+      COOKIE_SECRET   = "d0f8a994-46d5-82a0-bad7-e9464cbe1845"
+      JWT_SECRET      = "$2a$12$H8AX84XU9UaUAtkttFrkn.1L/.3OpGS4sALMqttWriljWiJL/N51O"
+
+      DB_HOST         = "abnmo-db-dev.ipecode.com.br"
+      DB_PORT         = "3306"
+      DB_DATABASE     = "abnmo_dev"
+      DB_USERNAME     = "abnmo_dev"
+      DB_PASSWORD     = file("${path.module}/secrets/abnmo_dev_pwd.txt")
+
     }
   }
+
 }
 
 resource "aws_lambda_function_url" "lambda_url_dev" {
@@ -90,24 +86,32 @@ resource "aws_lambda_function_url" "lambda_url_dev" {
 
 # Função lambda - versão qa
 resource "aws_lambda_function" "ipecode-abnmo-lambda-backend-qa" {
-  function_name = "ipecode-abnmo-lambda-backend-qa"
-  role          = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
-  filename      = "placeholder.zip"
+  function_name    = "ipecode-abnmo-lambda-backend-qa"
+  role             = aws_iam_role.ipecode_abnmo_lambda_exec_role.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = "placeholder.zip"
   source_code_hash = filebase64sha256("placeholder.zip")
-  timeout       = 10
+  timeout          = 10
 
   environment {
     variables = {
-      API_PORT     = "3333"
-      DB_DATABASE  = "abnmo_qa"
-      DB_HOST      = "abnmo-db-qa.ipecode.com.br"
-      DB_PASSWORD  = file("${path.module}/secrets/abnmo_qa_pwd.txt")
-      DB_PORT      = "3306"
-      DB_USERNAME  = "abnmo_qa"
-      JWT_SECRET   = "$2a$12$YfjA.G05PJf5EpGjdKFpbOUvrrSG6Mm7Zp6l2YN2/25LbDGdB/m/a"
-      NODE_ENV     = "homolog"
+
+      NODE_ENV        = "test"
+
+      APP_URL         = "https://homolog--abnmo.netlify.app"
+      APP_ENVIRONMENT = "homolog"
+
+      COOKIE_DOMAIN   = "abnmo.netlify.app"
+      COOKIE_SECRET   = "d0f8a994-bad7-46d5-82a0-e9464cbe1845"
+      JWT_SECRET      = "$2a$12$YfjA.G05PJf5EpGjdKFpbOUvrrSG6Mm7Zp6l2YN2/25LbDGdB/m/a"
+
+      DB_HOST         = "abnmo-db-qa.ipecode.com.br"
+      DB_PORT         = "3306"
+      DB_DATABASE     = "abnmo_qa"
+      DB_USERNAME     = "abnmo_qa"
+      DB_PASSWORD     = file("${path.module}/secrets/abnmo_qa_pwd.txt")
+
     }
   }
 }
@@ -155,7 +159,12 @@ resource "aws_iam_role" "github_oidc_lambda_deploy" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         },
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:ipecode-br/abnmo-backend:ref:refs/heads/*"
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:ipecode-br/abnmo-backend:ref:refs/heads/*",
+            "repo:ipecode-br/abnmo-backend:environment:production",
+            "repo:ipecode-br/abnmo-backend:environment:development",
+            "repo:ipecode-br/abnmo-backend:environment:homolog",
+          ]
         }
       }
     }]
@@ -164,14 +173,15 @@ resource "aws_iam_role" "github_oidc_lambda_deploy" {
 resource "aws_iam_policy" "lambda_deploy_policy" {
   name        = "lambda-deploy-permissions"
   description = "Permite GitHub atualizar funções Lambda via OIDC"
-  policy      = jsonencode({
+  policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
         Effect = "Allow",
         Action = [
           "lambda:UpdateFunctionCode",
-          "lambda:GetFunctionConfiguration"
+          "lambda:GetFunctionConfiguration",
+          "lambda:UpdateFunctionConfiguration"
         ],
         Resource = [
           aws_lambda_function.ipecode-abnmo-lambda-backend-main.arn,

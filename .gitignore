@@ -1,5 +1,5 @@
 /secrets
-.terraform
+.terraform/
 .ansible/
 .vscode/
 .venv/

@@ -1,46 +1,6 @@
-- name: Configurar e usar o ambiente virtual do Python (tanto local quanto no server)
-  hosts: all, localhost
-  gather_facts: false
-
-  tasks:
-    - name: Verificar se o ambiente virtual .venv existe
-      ansible.builtin.stat:
-        path: .venv
-      register: venv_exists
-
-    - name: Criar o ambiente virtual .venv se não existir
-      ansible.builtin.command: python3 -m venv .venv
-      when: not venv_exists.stat.exists
-      changed_when: true
-
-    - name: Configurar ansible_python_interpreter para usar .venv
-      ansible.builtin.set_fact:
-        ansible_python_interpreter: ".venv/bin/python"
-
-- name: Instala requisitos locais
-  hosts: localhost
-  gather_facts: false
-
-  tasks:
-    - name: Instala ansible-builder
-      ansible.builtin.pip:
-        name: ansible-builder
-        state: present
-
-    - name: Instala ansible-navigator
-      ansible.builtin.pip:
-        name: ansible-navigator
-        state: present
-
-    - name: Instala ansible-lint
-      ansible.builtin.pip:
-        name: ansible-lint
-        state: present
-
-    - name: Instala coleções do Ansible
-      ansible.builtin.command: >
-        ansible-galaxy install -r requirements/ansible-requirements.yml
-      changed_when: false
+---
+- name: Inicializa variáveis de ambiente
+  import_playbook: config/init_env.ansible.yml
 
 - name: Instala e configura o MySQL
   hosts: all

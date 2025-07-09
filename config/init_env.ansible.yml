@@ -1,0 +1,85 @@
+---
+# filepath: /home/wcruz/trabalhos/ipecode/ambiente-terraform/config/init_env.ansible.yml
+# Este playbook configura e usa o ambiente virtual do Python, tanto local quanto no servidor.
+# Ele também instala as dependências do Ansible a partir do arquivo ansible-requirements.yml.
+# Não espera parâmetros e não retorna nenhum valor específico.
+
+- name: Configurar e usar o ambiente virtual do Python (tanto local quanto no server)
+  hosts: all, localhost
+  gather_facts: false
+
+  tasks:
+    - name: Verificar se o ambiente virtual .venv existe
+      # Verifica se o diretório .venv existe.
+      ansible.builtin.stat:
+        path: .venv
+      register: venv_exists
+
+    - name: Criar o ambiente virtual .venv se não existir
+      # Cria o ambiente virtual .venv usando o python3.
+      ansible.builtin.command: python3 -m venv .venv
+      when: not venv_exists.stat.exists
+      changed_when: true
+
+    - name: Configurar ansible_python_interpreter para usar .venv
+      # Define a variável ansible_python_interpreter para usar o Python do ambiente virtual.
+      ansible.builtin.set_fact:
+        ansible_python_interpreter: ".venv/bin/python"
+
+- name: Instala requisitos locais
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Ativa o ambiente virtual
+      # Garante que o ambiente virtual esteja ativado antes de instalar as dependências.
+      ansible.builtin.shell: |
+        source .venv/bin/activate
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Garante que o pip está instalado no ambiente virtual
+      # Instala o pip no ambiente virtual, caso não esteja presente.
+      ansible.builtin.command: |
+        .venv/bin/python -m ensurepip --upgrade
+      changed_when: false
+
+    - name: Instala a biblioteca packaging no ambiente virtual
+      # Instala a biblioteca packaging diretamente no ambiente virtual para evitar erro do módulo pip.
+      ansible.builtin.shell: |
+        .venv/bin/pip install --upgrade pip packaging
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Instala ansible-builder
+      # Instala o ansible-builder usando o pip do ambiente virtual.
+      ansible.builtin.shell: |
+        .venv/bin/pip install --upgrade ansible-builder
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Instala ansible-navigator
+      # Instala o ansible-navigator usando o pip do ambiente virtual.
+      ansible.builtin.shell: |
+        .venv/bin/pip install --upgrade ansible-navigator
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Instala ansible-lint
+      # Instala o ansible-lint usando o pip do ambiente virtual.
+      ansible.builtin.shell: |
+        .venv/bin/pip install --upgrade ansible-lint
+      changed_when: false
+
+    - name: Instala coleções do Ansible
+      # Instala as coleções do Ansible a partir do arquivo ansible-requirements.yml usando ansible-galaxy.
+      ansible.builtin.command:
+        cmd: ansible-galaxy collection install -r ansible-requirements.yml
+      environment:
+        PATH: ".venv/bin:{{ ansible_env.PATH }}"
+      register: galaxy_install
+      changed_when: "'Successfully installed' in galaxy_install.stdout"
